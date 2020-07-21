@@ -5,16 +5,12 @@ import sys
 
 class Main():
     def __init__(self):
-        self.grid = []
-        for i in range(10):
-            self.grid.append([])
-            for j in range(10):
-                self.grid[i].append(0)
 
-        self.grid[4][5] = 1
         self.direction = "w"
-        self.old_direction = "w"
         old_time = process_time()
+        self.snake_eaten = 5
+        self.game_over = False
+        self.grid_size = 19
 
         self.screen = pg.display.set_mode((800, 800))
         pg.init()
@@ -23,7 +19,7 @@ class Main():
 
         while True:
 
-            if process_time() - old_time >= 0.25:
+            if process_time() - old_time >= 0.15:
                 old_time = process_time()
                 self.tick()
 
@@ -31,18 +27,37 @@ class Main():
             self.game_input()
 
     def tick(self):
-        if self.direction == "w":
-            self.head.make_move("w")
-        elif self.direction == "s":
-            self.head.make_move("s")
-        elif self.direction == "a":
-            self.head.make_move("a")
-        elif self.direction == "d":
-            self.head.make_move("d")
 
-        self.old_direction = self.direction
+        if not self.game_over:
 
-        print(self.head.history[-1])
+            self.head.try_to_move()
+
+            print(self.head.history)
+
+            if self.snake_eaten >= 1:
+                
+                self.snake_eaten -= 1
+            else:
+                self.head.history.pop(0)
+
+            for part in self.head.history[0:-1:]:
+                if part[0] == self.head.history[-1][0] and part[1] == self.head.history[-1][1]:
+                    print("boom in tail")
+                    self.game_over = True
+
+                elif self.head.history[-1][0] < 0 or self.head.history[-1][1] < 0 or self.head.history[-1][0] > self.grid_size or self.head.history[-1][1] > self.grid_size:
+                    print("boom in wall")
+                    self.game_over = True
+
+        
+        else:
+            pass
+            #del(self.head)
+            
+
+    def reset(self):
+        pass
+        
 
     def game_input(self):
 
@@ -61,16 +76,18 @@ class Main():
     def render(self):
 
         self.screen.fill((20, 20, 20))
-        pg.draw.rect(self.screen, (200, 200, 200),
-                     (self.head.history[-1][1]*40, self.head.history[-1][0]*40, 40, 40))
+
+        if not self.game_over:
+            for his in self.head.history:
+                pg.draw.rect(self.screen, (200, 200, 200), (his[1]*40, his[0]*40, 40, 40))
+                pg.draw.rect(self.screen, (150, 150, 150), (his[1]*40, his[0]*40, 40, 40),3)
+
+        else:
+            myfont = pg.font.SysFont('Comic Sans MS', 30)
+            textsurface = myfont.render("Game over!", True, (200, 160, 220))
+            self.screen.blit(textsurface, (0,0))
+
         pg.display.flip()
-
-
-class Body_part():
-
-    def __init__(self, game, head):
-        sefl.game = game
-        self.head = head
 
 
 class Head():
@@ -78,6 +95,7 @@ class Head():
     def __init__(self, game):
         self.history = []
         self.init_position()
+        self.game = game
 
     def init_position(self):
         self.position = (5, 5, "w")
@@ -85,6 +103,29 @@ class Head():
 
     def add_move_to_history(self, move):
         self.history.append(move)
+
+
+    def try_to_move(self):
+
+        if self.game.direction == "w"  and self.history[-1][2] == "s":
+            self.make_move("s")
+        elif self.game.direction == "w":
+            self.make_move("w")
+
+        if self.game.direction == "s" and self.history[-1][2] == "w":
+            self.make_move("w")
+        elif self.game.direction == "s":
+            self.make_move("s")
+
+        if self.game.direction == "a" and self.history[-1][2] == "d":
+            self.make_move("d")
+        elif self.game.direction == "a":
+            self.make_move("a")
+
+        if self.game.direction == "d" and self.history[-1][2] == "a":
+            self.make_move("a")
+        elif self.game.direction == "d":
+            self.make_move("d")
 
     def make_move(self, direction):
         if direction == "w":

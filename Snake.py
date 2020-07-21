@@ -8,18 +8,18 @@ class Main():
     def __init__(self):
 
         self.start_or_reset()
-
-        self.screen = pg.display.set_mode((800, 800))
+        self.screen_size = 800
+        self.screen = pg.display.set_mode((self.screen_size, self.screen_size))
         pg.init()
-        
+
         old_time = process_time()
         while True:
 
-            if process_time() - old_time >= 0.10:
+            if process_time() - old_time >= 0.1:
                 old_time = process_time()
                 self.tick()
+                self.render()
 
-            self.render()
             self.game_input()
 
     def tick(self):
@@ -29,7 +29,7 @@ class Main():
             self.head.try_to_move()
 
             if self.snake_eaten >= 1:
-                
+
                 self.snake_eaten -= 1
             else:
                 self.head.history.pop(0)
@@ -38,33 +38,32 @@ class Main():
 
             print(self.head.history)
 
-
     def collisions(self):
 
         for part in self.head.history[0:-1:]:
-                if part[0] == self.head.history[-1][0] and part[1] == self.head.history[-1][1]:
-                    print("boom in tail")
-                    self.game_over = True
+            if part[0] == self.head.history[-1][0] and part[1] == self.head.history[-1][1]:
+                print("boom in tail")
+                self.game_over = True
 
-                elif self.head.history[-1][0] < 0 or self.head.history[-1][1] < 0 or self.head.history[-1][0] > self.grid_size or self.head.history[-1][1] > self.grid_size:
-                    print("boom in wall")
-                    self.game_over = True
+            elif self.head.history[-1][0] < 0 or self.head.history[-1][1] < 0 or self.head.history[-1][0] > self.grid_size or self.head.history[-1][1] > self.grid_size:
+                print("boom in wall")
+                self.game_over = True
 
         if self.head.history[-1][0] == self.fruit.position[0] and self.head.history[-1][1] == self.fruit.position[1]:
             self.fruit.new_position()
             self.snake_eaten += 1
-
+            self.score += 1
 
     def start_or_reset(self):
 
         self.direction = "d"
-        self.snake_eaten = 5
+        self.snake_eaten = 2
         self.game_over = False
         self.grid_size = 19
+        self.score = 0
 
         self.head = Head(self)
         self.fruit = Fruit(self)
-        
 
     def game_input(self):
 
@@ -79,28 +78,48 @@ class Main():
                 self.direction = "a"
             if event.type == pg.KEYDOWN and event.key == pg.K_d:
                 self.direction = "d"
+            if self.game_over:
+                if event.type == pg.KEYDOWN and event.key == pg.K_SPACE:
+                    self.start_or_reset()
 
     def render(self):
 
-        self.screen.fill((20, 20, 20))
+        self.screen.fill((50, 55, 70))
 
         for his in self.head.history[0:-1:]:
-            pg.draw.rect(self.screen, (200, 200, 200), (his[1]*40, his[0]*40, 40, 40))
-            pg.draw.rect(self.screen, (150, 150, 150), (his[1]*40, his[0]*40, 40, 40),3)
-        
-        pg.draw.rect(self.screen, (220, 160, 150), (self.head.history[-1][1]*40, self.head.history[-1][0]*40, 40, 40))
-        pg.draw.rect(self.screen, (180, 130, 130), (self.head.history[-1][1]*40, self.head.history[-1][0]*40, 40, 40),3)
+            pg.draw.rect(self.screen, (135, 206, 250),
+                         (his[1]*40, his[0]*40, 40, 40))
+            pg.draw.rect(self.screen, (80, 150, 200),
+                         (his[1]*40, his[0]*40, 40, 40), 3)
 
-        pg.draw.rect(self.screen, (245, 50, 50), (self.fruit.position[1]*40, self.fruit.position[0]*40, 40, 40))
-        pg.draw.rect(self.screen, (200, 60, 60), (self.fruit.position[1]*40, self.fruit.position[0]*40, 40, 40),3)
+        pg.draw.rect(self.screen, (85, 156, 200),
+                     (self.head.history[-1][1]*40, self.head.history[-1][0]*40, 40, 40))
+        pg.draw.rect(self.screen, (60, 130, 180),
+                     (self.head.history[-1][1]*40, self.head.history[-1][0]*40, 40, 40), 3)
 
-        if  self.game_over:
+        pg.draw.rect(self.screen, (245, 50, 50),
+                     (self.fruit.position[1]*40, self.fruit.position[0]*40, 40, 40))
+        pg.draw.rect(self.screen, (200, 60, 60),
+                     (self.fruit.position[1]*40, self.fruit.position[0]*40, 40, 40), 3)
+
+        if self.game_over:
+
+            myfont = pg.font.SysFont('Comic Sans MS', 40)
+            textsurface = myfont.render("Game over!", True, (200, 160, 220))
+            self.screen.blit(
+                textsurface, (self.screen_size // 2 - 80, self.screen_size // 2 - 80))
 
             myfont = pg.font.SysFont('Comic Sans MS', 30)
-            textsurface = myfont.render("Game over!", True, (200, 160, 220))
-            self.screen.blit(textsurface, (0,0))
+            textsurface = myfont.render(
+                f"Your score: {self.score}", True, (200, 160, 220))
+            self.screen.blit(textsurface, (self.screen_size //
+                                           2 - 80, self.screen_size // 2 - 20))
 
-        
+            myfont = pg.font.SysFont('Comic Sans MS', 20)
+            textsurface = myfont.render(
+                f"Press <space> to try again!", True, (200, 160, 220))
+            self.screen.blit(textsurface, (self.screen_size //
+                                           2 - 100, self.screen_size // 2 + 20))
 
         pg.display.flip()
 
@@ -108,21 +127,24 @@ class Main():
 class Head():
 
     def __init__(self, game):
+        self.game = game
         self.history = []
         self.init_position()
-        self.game = game
 
     def init_position(self):
-        self.position = (5, 5, "w")
+        posx = randrange(self.game.grid_size//4, self.game.grid_size//4*3)
+        posy = randrange(self.game.grid_size//4, self.game.grid_size//4*3)
+        if posy > self.game.grid_size//2:
+            direction = "a"
+        else:
+            direction = "d"
+
+        self.position = (posx, posy, direction)
         self.history.append(self.position)
-
-    def add_move_to_history(self, move):
-        self.history.append(move)
-
 
     def try_to_move(self):
 
-        if self.game.direction == "w"  and self.history[-1][2] == "s":
+        if self.game.direction == "w" and self.history[-1][2] == "s":
             self.make_move("s")
         elif self.game.direction == "w":
             self.make_move("w")
@@ -152,7 +174,7 @@ class Head():
         elif direction == "d":
             next_move = (self.history[-1][0], self.history[-1][1]+1, direction)
 
-        self.add_move_to_history(next_move)
+        self.history.append(next_move)
 
 
 class Fruit():
@@ -162,10 +184,8 @@ class Fruit():
         self.new_position()
 
     def new_position(self):
-        self.position = [randrange(0,self.game.grid_size), 
-                            randrange(0,self.game.grid_size)]
-
-
+        self.position = [randrange(0, self.game.grid_size),
+                         randrange(0, self.game.grid_size)]
 
 
 if __name__ == "__main__":

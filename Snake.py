@@ -15,7 +15,7 @@ class Main():
         old_time = process_time()
         while True:
 
-            if process_time() - old_time >= 0.1:
+            if process_time() - old_time >= 0.12:
                 old_time = process_time()
                 self.tick()
                 self.render()
